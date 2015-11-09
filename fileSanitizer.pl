@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 #
-# Sanitize (remove IP addrs etc.)  a text file.
+# @author Greg Morgna
+# @version 0.1
+#
+# Sanitize (remove IP addrs etc.) from a text file.
 #
 
 use strict;
