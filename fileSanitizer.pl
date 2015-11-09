@@ -7,6 +7,7 @@
 #
 
 use strict;
+use warnings;
 
 no strict 'refs'; # needed to assign STDOUT
 
