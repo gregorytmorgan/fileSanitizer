@@ -33,21 +33,61 @@ my $outfile;
 #
 sub usage()
 {
-	print STDERR "Usage: $0 [-hvd] [-f file]\n";
-	print STDERR "\t-h        : this message\n";
-	print STDERR "\t-v        : Verbose output to STDERR\n";
+	print STDERR "Usage: $0 [-hv] [-f file] [-o file] [-s string]\n";
 	print STDERR "\t-f file   : Input file\n";
-	print STDERR "\t-p file   : Output file\n";
+	print STDERR "\t-h        : this message\n";
+	print STDERR "\t-s string : Sanitize string. Default='UI' [U=Username, I=IP Addres]\n";
+	print STDERR "\t-o file   : Output file\n";
+	print STDERR "\t-v        : Verbose output to STDERR\n";
 	print STDERR "\n";
-	print STDERR "Example: $0 -v -d -f file\n";
+	print STDERR "Example: $0 -v -d -fofile\n";
 	exit();
+}
+
+#
+#
+#
+sub sanitizeIPv4 {
+	my ($line, $n) = @_;
+
+	my @matches = ($line =~ /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/gm);
+
+	if (@matches > 0) {
+		$line =~ s/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/n\.n\.n\.n/g; 
+
+		if ($opt{v}) {
+			print STDERR "Line " . $n . ": " . join(", ", @matches) . "\n";
+		}
+	}
+
+	return $line;
+}
+
+#
+#
+#
+sub sanitizeUsername {
+
+	my ($line, $n) = @_;
+
+	my @matches = ($line =~ /\s+user\=([^\s]+)\s+/g);
+
+	if (@matches > 0) {
+		$line =~ s/\s+user=([^\s]+)*\s+/ user="XXXX" /g;
+
+		if ($opt{v}) {
+			print STDERR "Line " . $n . ": " . join(", ", @matches) . "\n";
+		}
+	}
+
+	return $line;
 }
 
 
 #
 # parseFile()
 #
-sub parseForIPs 
+sub parse 
 {
 	my $infile;
 	my ($filename) = @_;
@@ -58,8 +98,6 @@ sub parseForIPs
 		open ($infile, "<", $filename) or die "Cannot open input file $filename: $!";
 	}
 
-	print STDERR "Tell:" . tell($infile) . "\n";
-
 	print STDERR "Parsing $filename ...\n";
 
 	my $n = 0;
@@ -67,20 +105,20 @@ sub parseForIPs
 	while(my $line = <$infile>) {
 		$n++;
 
-		my @matches = ($line =~ /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/gm);
+		# ip addresses
+		if (index($opt{s}, 'I') != -1) {
+			$line = sanitizeIPv4($line, $n); 
+		}
 
-		if (@matches > 0) {
-			$line =~ s/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/0\.0\.0\.0/g; 
-
-			if ($opt{v}) {
-				print STDERR "Line " . $n . ": " . join(", ", @matches) . "\n";
-			}
+		# usernames
+		if (index($opt{s}, 'U') != -1) {
+			$line = sanitizeUsername($line, $n); 
 		}
 
 		print $outfile $line;
 	}
 
-	if ($filename != "STDIN") {
+	if ($filename eq "STDIN") {
 		close($infile);
 	}
 
@@ -94,7 +132,7 @@ sub parseForIPs
 # main
 #
 
-my $opt_string = 'hvdo:f:';
+my $opt_string = 'hvo:f:s:';
 getopts( "$opt_string", \%opt ) or usage();
 usage() if $opt{h};
 
@@ -103,6 +141,11 @@ my @fileList;
 if (!$opt{f} && @ARGV == 0) {
 	print STDERR "No input files.\n";
 	usage();
+}
+
+# default filter is all of them
+if (!$opt{s}) {
+	$opt{s} = "UI";
 }
 
 if ($opt{f}) {
@@ -140,7 +183,7 @@ if ($opt{o}) {
 }	
 
 foreach my $file (@fileList) {
-	parseForIPs($file);
+	parse($file);
 }
 
 if ($opt{o}) {
