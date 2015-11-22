@@ -1,9 +1,13 @@
 #!/usr/bin/perl
 #
-# @author Greg Morgna
+# @author Greg Morgan
 # @version 0.1
 #
 # Sanitize (remove IP addrs etc.) from a text file.
+#
+# To see the sanitized values
+#
+#  > filesanitizer.pl -v < myLogFile 2> filter.txt
 #
 
 use strict;
@@ -19,33 +23,28 @@ use Getopt::Std;
 use vars qw/ %opt /;
 
 my $outfile;
-
-#my $infile = \*STDIN; # or die "Cannot open STDIN: $!";
-#
-#while (my $line = <$infile>) {
-#	print STDERR "XXX $line";
-#}
-#
-#die();
+my $opt_string = 'hvo:f:s:q';
+my @fileList;
 
 #
 # usage()
 #
 sub usage()
 {
-	print STDERR "Usage: $0 [-hv] [-f file] [-o file] [-s string]\n";
-	print STDERR "\t-f file   : Input file\n";
+	print STDERR "Usage: $0 [-hqv] [-f file] [-o file] [-s string]\n";
+	print STDERR "\t-f file   : Input file (Default STDIN)\n";
 	print STDERR "\t-h        : this message\n";
-	print STDERR "\t-s string : Sanitize string. Default='UI' [U=Username, I=IP Addres]\n";
-	print STDERR "\t-o file   : Output file\n";
+	print STDERR "\t-o file   : Output file (Default STDOUT)\n";
+	print STDERR "\t-q		  : Quite. No console output\n";
+	print STDERR "\t-s string : Sanitize string. Default='UI' [U=Username, I=IP Addres]\n";	
 	print STDERR "\t-v        : Verbose output to STDERR\n";
 	print STDERR "\n";
-	print STDERR "Example: $0 -v -d -fofile\n";
+	print STDERR "Example: $0 -v infile\n";
 	exit();
 }
 
 #
-#
+# Sanitize user="10.0.128.16" type log data.  Does not do IPv6.
 #
 sub sanitizeIPv4 {
 	my ($line, $n) = @_;
@@ -64,7 +63,7 @@ sub sanitizeIPv4 {
 }
 
 #
-#
+# Sanitize user="..." type log data.
 #
 sub sanitizeUsername {
 
@@ -83,22 +82,23 @@ sub sanitizeUsername {
 	return $line;
 }
 
-
 #
 # parseFile()
 #
 sub parse 
 {
 	my $infile;
-	my ($filename) = @_;
+	my ($inFilename) = @_;
 
-	if ($filename eq "STDIN") {
+	if ($inFilename eq "STDIN") {
 		$infile = \*STDIN;
 	} else {
-		open ($infile, "<", $filename) or die "Cannot open input file $filename: $!";
+		open ($infile, "<", $inFilename) or die "Cannot open input file $inFilename: $!";
 	}
 
-	print STDERR "Parsing $filename ...\n";
+	if (!$opt{q}) {
+		print STDERR "Parsing $inFilename ...\n";
+	}
 
 	my $n = 0;
 
@@ -118,44 +118,36 @@ sub parse
 		print $outfile $line;
 	}
 
-	if ($filename eq "STDIN") {
+	if ($inFilename ne "STDIN") {
 		close($infile);
 	}
 
-	if ($opt{v}) {
-		print STDERR "Parsing $filename ... $n lines. Done.\n";
+	if (!$opt{q}) {
+		print STDERR "Parsing $inFilename ... $n lines. Done.\n";
 	}
 }
-
 
 #
 # main
 #
 
-my $opt_string = 'hvo:f:s:';
 getopts( "$opt_string", \%opt ) or usage();
+
 usage() if $opt{h};
 
-my @fileList;
-
-if (!$opt{f} && @ARGV == 0) {
-	print STDERR "No input files.\n";
-	usage();
+if ($opt{v} && $opt{q}) {
+	$opt{q} = 0;
 }
 
 # default filter is all of them
 if (!$opt{s}) {
-	$opt{s} = "UI";
+	$opt{s} = "UI"; # 'U' = usernames, 'I' = ip addresses
 }
 
 if ($opt{f}) {
-	if ($opt{f} eq "-") {
-		@fileList = qw(STDIN);
-	} else {
-		@fileList = "$opt{f}";
-	}
+	@fileList = "$opt{f}";
 } else {
-	if (@ARGV == 1 && $ARGV[0] eq "-") {
+	if (@ARGV == 0) {
 		@fileList = qw(STDIN);
 	} else {
 		@fileList = @ARGV;
@@ -163,7 +155,7 @@ if ($opt{f}) {
 }
 
 if (@fileList == 0) {
-
+	die("Error - No files\n");
 }
 
 if ($opt{v}) {
@@ -188,10 +180,6 @@ foreach my $file (@fileList) {
 
 if ($opt{o}) {
 	close($outfile);
-}
-
-if ($opt{v}) {
-	print STDERR "Done.\n"
 }
 
 # end file
