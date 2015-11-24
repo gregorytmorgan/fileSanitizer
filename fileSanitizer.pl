@@ -31,8 +31,7 @@ my @fileList;
 #
 sub usage()
 {
-	print STDERR "Usage: $0 [-hqv] [-f file] [-o file] [-s string]\n";
-	print STDERR "\t-f file   : Input file (Default STDIN)\n";
+	print STDERR "Usage: $0 [-hqv] [-o file] [-s string] infile\n";
 	print STDERR "\t-h        : this message\n";
 	print STDERR "\t-o file   : Output file (Default STDOUT)\n";
 	print STDERR "\t-q        : Quite. No console output\n";
