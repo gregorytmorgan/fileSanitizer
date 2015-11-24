@@ -35,11 +35,16 @@ sub usage()
 	print STDERR "\t-f file   : Input file (Default STDIN)\n";
 	print STDERR "\t-h        : this message\n";
 	print STDERR "\t-o file   : Output file (Default STDOUT)\n";
-	print STDERR "\t-q		  : Quite. No console output\n";
-	print STDERR "\t-s string : Sanitize string. Default='UI' [U=Username, I=IP Addres]\n";	
+	print STDERR "\t-q        : Quite. No console output\n";
+	print STDERR "\t-s string : Sanitize string. Default='UI' [U=Username, I=IP Addres]\n";
 	print STDERR "\t-v        : Verbose output to STDERR\n";
 	print STDERR "\n";
-	print STDERR "Example: $0 -v infile\n";
+	print STDERR "Examples:\n";
+	print STDERR "\n";
+    print STDERR "  Sanitize 'logfile', results to logfile.sanitized: $0 logfile > logfile.sanitized\n";
+	print STDERR "\n";
+	print STDERR "  As above, but capture the sanitized values: $0 -v logfile 2> sanitized-values.txt > logfile.sanitized\n";
+	print STDERR "\n";
 	exit();
 }
 
@@ -52,7 +57,7 @@ sub sanitizeIPv4 {
 	my @matches = ($line =~ /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/gm);
 
 	if (@matches > 0) {
-		$line =~ s/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/n\.n\.n\.n/g; 
+		$line =~ s/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\:\d{1,5})*/n\.n\.n\.n/g;
 
 		if ($opt{v}) {
 			print STDERR "Line " . $n . ": " . join(", ", @matches) . "\n";
@@ -85,7 +90,7 @@ sub sanitizeUsername {
 #
 # parseFile()
 #
-sub parse 
+sub parse
 {
 	my $infile;
 	my ($inFilename) = @_;
@@ -107,12 +112,12 @@ sub parse
 
 		# ip addresses
 		if (index($opt{s}, 'I') != -1) {
-			$line = sanitizeIPv4($line, $n); 
+			$line = sanitizeIPv4($line, $n);
 		}
 
 		# usernames
 		if (index($opt{s}, 'U') != -1) {
-			$line = sanitizeUsername($line, $n); 
+			$line = sanitizeUsername($line, $n);
 		}
 
 		print $outfile $line;
@@ -171,8 +176,8 @@ if ($opt{v}) {
 if ($opt{o}) {
 	open ($outfile, ">", $opt{o}) or die "Cannot open output file $opt{o}: $!";
 } else {
-	$outfile = select (STDOUT); 
-}	
+	$outfile = select (STDOUT);
+}
 
 foreach my $file (@fileList) {
 	parse($file);
